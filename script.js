@@ -129,15 +129,51 @@ const _music = (() => {
   }
 })();
 
+// ---- Dot navigation for horizontal carousel ----
+(() => {
+  const main = document.getElementById('main');
+  const nav  = document.getElementById('dots');
+  if (!main || !nav) return;
+
+  const panels = [...main.querySelectorAll('.panel')];
+  const labels = ['Invitation','Family','Details','Venue','RSVP','Closing'];
+
+  // Build one dot per panel
+  const dots = panels.map((panel, i) => {
+    const btn = document.createElement('button');
+    btn.setAttribute('aria-label', labels[i] || 'Slide ' + (i + 1));
+    btn.setAttribute('type', 'button');
+    if (i === 0) btn.classList.add('active');
+    btn.addEventListener('click', () => {
+      panel.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'start' });
+    });
+    nav.appendChild(btn);
+    return btn;
+  });
+
+  // Track which panel is visible
+  const obs = new IntersectionObserver(entries => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        const idx = panels.indexOf(entry.target);
+        dots.forEach((d, i) => d.classList.toggle('active', i === idx));
+        // Start footer video when it comes into view
+        if (entry.target.tagName === 'FOOTER' || entry.target.querySelector('#footVid')) {
+          const fv = entry.target.querySelector('#footVid') || document.getElementById('footVid');
+          if (fv && fv.paused && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
+            fv.preload = 'auto'; fv.play().catch(() => {});
+          }
+        }
+      }
+    });
+  }, { root: main, threshold: 0.5 });
+
+  panels.forEach(p => obs.observe(p));
+})();
+
+// ---- Countdown + RSVP ----
 (() => {
   const $ = (s, r = document) => r.querySelector(s);
-  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
-
-  // Footer video: starts only when near the viewport (keeps first load light)
-  const fv = $('#footVid');
-  if (fv && !reduce) new IntersectionObserver((e, o) => {
-    if (e[0].isIntersecting) { fv.preload = 'auto'; fv.play().catch(() => {}); o.disconnect(); }
-  }, { rootMargin: '400px' }).observe(fv);
 
   // Countdown (Asia/Muscat = UTC+4, no DST)
   const target = Date.parse('2026-12-18T17:00:00+04:00');
