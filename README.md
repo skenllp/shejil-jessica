@@ -8,4 +8,4 @@ To test RSVP end-to-end: `npm i -g vercel`, copy your keys into a `.env`, run `v
 1. Run `supabase/schema.sql` in the Supabase SQL editor.
 2. In Vercel > Settings > Environment Variables add `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` (server only).
 ## Deploy (Vercel)
-Upload the folder (or push to GitHub) and import it in Vercel: framework preset "Other", no build command. Then replace `https://YOUR-DOMAIN` in the three `index.html` meta tags (og:image / twitter:image) with the live address and redeploy.
+Upload the folder (or push to GitHub) and import it in Vercel: framework preset "Other", no build command. Social-preview meta tags already point to https://shejil-jessica.vercel.app. If you change domain, update the og:url / og:image / twitter:image tags in `index.html`.
