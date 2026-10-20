@@ -1,5 +1,6 @@
 # Shejil & Jessica: Static Omani Wedding Invitation (HTML/CSS/JS)
 No build step. Files: `index.html`, `styles.css`, `script.js`, `assets/` (WebP art, MP4/WebM video, og.jpg), `api/rsvp.js` (Vercel serverless), `supabase/schema.sql`.
+Music: `assets/music.mp3` (original instrumental, plays after the guest taps Open; mute button bottom-right). Replace that file to change the song.
 ## Test locally
     python3 -m http.server 8000      # open http://localhost:8000
 The page, cover, countdown and Maps button all work. RSVP shows a DEMO message (no backend locally).

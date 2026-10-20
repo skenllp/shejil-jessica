@@ -3,11 +3,20 @@
   const root = document.documentElement;
   const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
+  // Background music: starts only after the guest taps Open (browser rule), quiet, loops, easy to mute
+  const mBtn = $('#musicBtn'), audio = new Audio('assets/music.mp3');
+  audio.loop = true; audio.volume = 0.35; audio.preload = 'none';
+  const setM = on => { mBtn.setAttribute('aria-pressed', on); mBtn.setAttribute('aria-label', on ? 'Pause music' : 'Play music'); };
+  const music = { reveal() { mBtn.hidden = false; if (reduce) return setM(false); audio.play().then(() => setM(true)).catch(() => setM(false)); } };
+  mBtn.addEventListener('click', () => { if (audio.paused) audio.play().then(() => setM(true)); else { audio.pause(); setM(false); } });
+  document.addEventListener('visibilitychange', () => { if (document.hidden && !audio.paused) { audio.pause(); audio.dataset.auto = '1'; setM(false); } else if (!document.hidden && audio.dataset.auto) { delete audio.dataset.auto; audio.play().then(() => setM(true)).catch(() => {}); } });
+
   // Opening cover
   const cover = $('#cover'), openBtn = $('#openBtn');
   root.style.overflow = 'hidden'; openBtn.focus({ preventScroll: true });
   openBtn.addEventListener('click', () => {
     root.dataset.opened = '1'; scrollTo(0, 0); cover.classList.add('open');
+    music.reveal();
     setTimeout(() => { cover.remove(); root.style.overflow = ''; }, reduce ? 0 : 700);
   });
 
