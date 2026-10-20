@@ -139,45 +139,54 @@
 })();
 
 // ---- Background music controller ----
+// Audio is started synchronously inside the openBtn click (same user-gesture call stack)
+// so browsers allow autoplay. The MutationObserver only reveals the UI button afterward.
 (() => {
-  const btn = document.getElementById('musicBtn');
-  if (!btn) return;
+  const musicBtn = document.getElementById('musicBtn');
+  if (!musicBtn) return;
+
   const audio = new Audio('assets/music.mp3');
   audio.loop = true;
   audio.volume = 0.35;
   audio.preload = 'none';
 
   const setPlaying = playing => {
-    btn.setAttribute('aria-pressed', String(playing));
-    btn.setAttribute('aria-label', playing ? 'Pause music' : 'Play music');
+    musicBtn.setAttribute('aria-pressed', String(playing));
+    musicBtn.setAttribute('aria-label', playing ? 'Pause music' : 'Play music');
   };
 
   const tryPlay = () => audio.play().then(() => setPlaying(true)).catch(() => setPlaying(false));
 
-  // Reveal and autoplay once the invitation is opened (fires after the door animation)
-  // We watch for the cover being removed from the DOM, then start music.
+  // Hook into the open button's click — same gesture, autoplay always works here.
+  const openBtn = document.getElementById('openBtn');
+  if (openBtn) {
+    openBtn.addEventListener('click', () => {
+      if (!matchMedia('(prefers-reduced-motion: reduce)').matches) tryPlay();
+    }, { once: true });
+  }
+
+  // Reveal the music UI button once the cover leaves the DOM.
   const cover = document.getElementById('opening');
   if (cover) {
     new MutationObserver((_, obs) => {
       if (!document.getElementById('opening')) {
         obs.disconnect();
-        btn.hidden = false;
-        if (!matchMedia('(prefers-reduced-motion: reduce)').matches) tryPlay();
-        else setPlaying(false);
+        musicBtn.hidden = false;
+        // Sync the button state in case audio already started above.
+        setPlaying(!audio.paused);
       }
-    }).observe(document.body, { childList: true, subtree: false });
+    }).observe(document.body, { childList: true });
   } else {
-    // Cover already gone (e.g. noscript fallback)
-    btn.hidden = false;
-    setPlaying(false);
+    musicBtn.hidden = false;
+    setPlaying(!audio.paused);
   }
 
-  // Play / pause toggle
-  btn.addEventListener('click', () => {
+  // Play / pause toggle.
+  musicBtn.addEventListener('click', () => {
     if (audio.paused) tryPlay(); else { audio.pause(); setPlaying(false); }
   });
 
-  // Auto-pause when tab is hidden; resume when it comes back
+  // Auto-pause when tab is hidden; resume when it comes back.
   document.addEventListener('visibilitychange', () => {
     if (document.hidden && !audio.paused) {
       audio.pause(); audio.dataset.auto = '1'; setPlaying(false);
