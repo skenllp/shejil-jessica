@@ -1,6 +1,6 @@
 # Shejil & Jessica: Static Omani Wedding Invitation (HTML/CSS/JS)
-No build step. Files: `index.html`, `styles.css`, `script.js`, `assets/` (WebP art, MP4/WebM video, og.jpg), `google-apps-script/Code.gs`.
-Music: `assets/music.mp3` (original instrumental, plays after the guest taps Open; mute button bottom-right). Replace that file to change the song.
+No build step. Files: `index.html`, `styles.css`, `script.js`, `assets/` (WebP backgrounds, footer MP4/WebM, og-royal-muscat.jpg), `google-apps-script/Code.gs`.
+
 ## Test locally
     python3 -m http.server 8000      # open http://localhost:8000
 Everything works locally, including RSVP (it writes to your sheet).
@@ -12,3 +12,8 @@ Everything works locally, including RSVP (it writes to your sheet).
 5. Test an RSVP on the live site and check the sheet. Same guest name resubmitting updates their row.
 ## Deploy (Vercel)
 Upload the folder (or push to GitHub) and import it in Vercel: framework preset "Other", no build command. Social-preview meta tags already point to https://shejil-jessica.vercel.app. If you change domain, update the og:url / og:image / twitter:image tags in `index.html`.
+
+## Royal Muscat theme notes
+- Backgrounds: hero-sunset-courtyard (hero), family-ornate-archway (family), details-serene-archway (details + venue, venue is mirrored), rsvp-ivory-lantern-hall (RSVP). Footer files are unchanged.
+- No opening cover and no music. The S&J monogram reveal is CSS only (plays once, ~2.5 s).
+- WhatsApp image: `assets/og-royal-muscat.jpg` (new filename so old cached previews are not reused). Replace it with your own 1200x630 JPG under the same name; keep it under 300 KB.

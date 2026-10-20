@@ -1,26 +1,8 @@
 (() => {
   const $ = (s, r = document) => r.querySelector(s);
-  const root = document.documentElement;
   const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-  // Background music: starts only after the guest taps Open (browser rule), quiet, loops, easy to mute
-  const mBtn = $('#musicBtn'), audio = new Audio('assets/music.mp3');
-  audio.loop = true; audio.volume = 0.35; audio.preload = 'none';
-  const setM = on => { mBtn.setAttribute('aria-pressed', on); mBtn.setAttribute('aria-label', on ? 'Pause music' : 'Play music'); };
-  const music = { reveal() { mBtn.hidden = false; if (reduce) return setM(false); audio.play().then(() => setM(true)).catch(() => setM(false)); } };
-  mBtn.addEventListener('click', () => { if (audio.paused) audio.play().then(() => setM(true)); else { audio.pause(); setM(false); } });
-  document.addEventListener('visibilitychange', () => { if (document.hidden && !audio.paused) { audio.pause(); audio.dataset.auto = '1'; setM(false); } else if (!document.hidden && audio.dataset.auto) { delete audio.dataset.auto; audio.play().then(() => setM(true)).catch(() => {}); } });
-
-  // Opening cover
-  const cover = $('#cover'), openBtn = $('#openBtn');
-  root.style.overflow = 'hidden'; openBtn.focus({ preventScroll: true });
-  openBtn.addEventListener('click', () => {
-    root.dataset.opened = '1'; scrollTo(0, 0); cover.classList.add('open');
-    music.reveal();
-    setTimeout(() => { cover.remove(); root.style.overflow = ''; }, reduce ? 0 : 700);
-  });
-
-  // Footer video: start only when near the viewport (keeps first load light)
+  // Footer video: starts only when near the viewport (keeps first load light)
   const fv = $('#footVid');
   if (fv && !reduce) new IntersectionObserver((e, o) => {
     if (e[0].isIntersecting) { fv.preload = 'auto'; fv.play().catch(() => {}); o.disconnect(); }
@@ -52,7 +34,7 @@
       const r = await fetch(RSVP_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
         body: JSON.stringify({ name, attending: att === 'yes', guests: att === 'yes' ? Number(f.get('guests') || 1) : 0, message: String(f.get('message') || '').trim(), website: String(f.get('website') || '') }) });
       const j = await r.json().catch(() => ({ error: 'no-json' }));
-      if (r.ok && j.ok) show('<p class="script">Thank you</p><p>Your response has been received.</p>');
+      if (r.ok && j.ok) show('<p class="cinzel hd">Thank you</p><p>Your response has been received.</p>');
       else throw new Error('Could not save your response. Please try again. (' + (j.error || 'http ' + r.status) + ')');
     } catch (err) {
       fail('#eForm', err instanceof TypeError ? 'Network error. Please check your connection and try again.' : err.message);
