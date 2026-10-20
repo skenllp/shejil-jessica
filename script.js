@@ -1,3 +1,97 @@
+// ---- Royal Muscat door-opening cover ----
+// Runs first and is fully self-contained: any failure releases the page instead of trapping the guest behind the cover.
+(() => {
+  const root = document.documentElement, $ = id => document.getElementById(id);
+  const cover = $('opening'), main = $('main');
+  const release = () => {
+    root.classList.remove('is-locked', 'is-opening');
+    if (main) { main.inert = false; main.removeAttribute('aria-hidden'); }
+  };
+  if (!cover) return release();
+  try {
+    const stage = $('openStage'), video = $('openVideo'), btn = $('openBtn'), status = $('openStatus');
+    const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    let started = false, finished = false, watchdog = 0;
+
+    // Lock the page: start at the top, nothing underneath is reachable or scrollable
+    if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
+    scrollTo(0, 0);
+    main.inert = true; main.setAttribute('aria-hidden', 'true');
+    cover.tabIndex = -1;
+    const stop = e => e.preventDefault();
+    cover.addEventListener('touchmove', stop, { passive: false });
+    cover.addEventListener('wheel', stop, { passive: false });
+    if (!('inert' in main)) document.addEventListener('focusin', e => {   // older browsers without `inert`
+      if (!finished && !cover.contains(e.target)) (btn.disabled ? cover : btn).focus();
+    });
+
+    // Pixel-snap the 9:16 stage to even device-pixel sizes/offsets so poster and video are rasterised on exactly the same grid
+    // (CSS alone leaves fractional edges, e.g. 693.33px, which images and video snap differently). CSS sizing is the fallback.
+    const fit = () => {
+      const d = window.devicePixelRatio || 1, snap = v => Math.round(v * d / 2) * 2 / d;   // even device-pixel multiples
+      const W = cover.clientWidth, H = cover.clientHeight;
+      const w = snap(Math.min(W, H * 9 / 16, 720)), h = snap(w * 16 / 9);
+      Object.assign(stage.style, { width: w + 'px', height: h + 'px', left: snap((W - w) / 2) + 'px', top: snap((H - h) / 2) + 'px', margin: '0' });
+    };
+    fit(); addEventListener('resize', fit);
+
+    // Warm the 4 MB video once the page has settled (not on data-saver / 2G), so it starts instantly on tap
+    const conn = navigator.connection || {};
+    const lean = conn.saveData || /(^|-)2g$/.test(conn.effectiveType || '');
+    const idle = cb => 'requestIdleCallback' in window ? requestIdleCallback(cb, { timeout: 2500 }) : setTimeout(cb, 400);
+    const warm = () => { if (!finished && !started && !lean) { video.preload = 'auto'; video.load(); } };
+    if (document.readyState === 'complete') idle(warm); else addEventListener('load', () => idle(warm), { once: true });
+
+    // Open the invitation: crossfade the cover into the hero, then remove it from the DOM
+    const finish = () => {
+      if (finished) return; finished = true; clearTimeout(watchdog);
+      status.textContent = 'Invitation opened';
+      cover.classList.add('is-leaving');      // 500 ms opacity crossfade (see --fade in styles.css)
+      release();                              // unlock scroll, un-inert, start the short hero text fade
+      scrollTo(0, 0);
+      main.focus({ preventScroll: true });
+      let gone = false;
+      const remove = () => {
+        if (gone) return; gone = true;
+        video.pause(); video.removeAttribute('src'); video.load();   // free the decoder and connection
+        removeEventListener('resize', fit); cover.remove();
+      };
+      cover.addEventListener('transitionend', e => { if (e.target === cover && e.propertyName === 'opacity') remove(); });
+      setTimeout(remove, 1000);               // failsafe only; the real trigger is transitionend
+    };
+
+    // Playback failure guard (never used to end a healthy video): no progress for 9 s means open the invitation anyway
+    const arm = () => { clearTimeout(watchdog); watchdog = setTimeout(finish, 9000); };
+
+    const open = () => {
+      if (started) return; started = true;
+      btn.disabled = true;                    // no repeat activation
+      status.textContent = 'Opening the invitation';
+      if (reduce) return finish();            // reduced motion: skip straight to the invitation
+      arm();
+      video.addEventListener('ended', finish, { once: true });   // the real end of the animation, whatever its length
+      video.addEventListener('error', finish, { once: true });
+      video.addEventListener('timeupdate', () => { if (!finished) arm(); });
+      // Hide the poster only once the video is actually presenting frames (it shows the identical first frame underneath)
+      let shown = false;
+      const reveal = () => { if (!shown) { shown = true; stage.classList.add('is-playing'); } };
+      if ('requestVideoFrameCallback' in video) video.requestVideoFrameCallback(reveal);
+      video.addEventListener('timeupdate', () => { if (video.currentTime > 0.04) reveal(); });
+      const p = video.play();
+      if (p && p.catch) p.catch(finish);
+    };
+    btn.addEventListener('click', open);      // native <button>: mouse, touch, Enter and Space all land here
+
+    // Mobile browsers can pause video in a hidden tab; resume when the guest comes back
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden && started && !finished && video.paused && !video.ended) video.play().catch(finish);
+    });
+  } catch (err) {
+    console.warn('Opening cover failed, showing the invitation instead.', err);
+    release(); cover.remove();
+  }
+})();
+
 (() => {
   const $ = (s, r = document) => r.querySelector(s);
   const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -42,4 +136,53 @@
     }
   });
   function show(html) { form.hidden = true; done.innerHTML = html; done.hidden = false; }
+})();
+
+// ---- Background music controller ----
+(() => {
+  const btn = document.getElementById('musicBtn');
+  if (!btn) return;
+  const audio = new Audio('assets/music.mp3');
+  audio.loop = true;
+  audio.volume = 0.35;
+  audio.preload = 'none';
+
+  const setPlaying = playing => {
+    btn.setAttribute('aria-pressed', String(playing));
+    btn.setAttribute('aria-label', playing ? 'Pause music' : 'Play music');
+  };
+
+  const tryPlay = () => audio.play().then(() => setPlaying(true)).catch(() => setPlaying(false));
+
+  // Reveal and autoplay once the invitation is opened (fires after the door animation)
+  // We watch for the cover being removed from the DOM, then start music.
+  const cover = document.getElementById('opening');
+  if (cover) {
+    new MutationObserver((_, obs) => {
+      if (!document.getElementById('opening')) {
+        obs.disconnect();
+        btn.hidden = false;
+        if (!matchMedia('(prefers-reduced-motion: reduce)').matches) tryPlay();
+        else setPlaying(false);
+      }
+    }).observe(document.body, { childList: true, subtree: false });
+  } else {
+    // Cover already gone (e.g. noscript fallback)
+    btn.hidden = false;
+    setPlaying(false);
+  }
+
+  // Play / pause toggle
+  btn.addEventListener('click', () => {
+    if (audio.paused) tryPlay(); else { audio.pause(); setPlaying(false); }
+  });
+
+  // Auto-pause when tab is hidden; resume when it comes back
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden && !audio.paused) {
+      audio.pause(); audio.dataset.auto = '1'; setPlaying(false);
+    } else if (!document.hidden && audio.dataset.auto) {
+      delete audio.dataset.auto; tryPlay();
+    }
+  });
 })();

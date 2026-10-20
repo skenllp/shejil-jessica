@@ -46,13 +46,54 @@ fieldset{border:0;padding:0;min-width:0}
 .choice:has(input:focus-visible){outline:2px solid var(--gold);outline-offset:2px}
 .err{color:#8a1f1f;font-size:.76rem;margin-top:4px}.hp,.sr{position:absolute;left:-9999px}
 #rsvpDone{text-align:center;font-family:'Cormorant Garamond',serif;font-size:1.2rem;color:var(--charcoal)}#rsvpDone .hd{margin-bottom:8px}
-/* hero reveal: CSS only, plays once on load, text stays visible afterwards */
+/* hero reveal: CSS only. Held back while the door cover is up (html.is-opening), then a short ~1 s fade-in as the cover dissolves.
+   The S&J monogram already appears on the doors, so the hero copy is hidden (its space is kept so nothing shifts). */
 @keyframes fade{from{opacity:0}to{opacity:1}}
 @keyframes up{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
 @keyframes draw{from{opacity:0;transform:scaleX(0)}to{opacity:1;transform:none}}
-.mono{animation:fade .6s ease-out both}
-.hline{animation:draw .6s ease-out .6s both}
-.bism{animation:fade .6s ease-out 1.2s both}
-.names,.dateblock{animation:up .7s ease-out 1.8s both}
-@media (prefers-reduced-motion:reduce){.mono,.hline,.bism,.names,.dateblock{animation:none}html{scroll-behavior:auto}.vid{display:none}}
+.hero .mono{visibility:hidden}
+.hline{animation:draw .5s ease-out .1s both}
+.bism{animation:fade .6s ease-out .2s both}
+.names,.dateblock{animation:up .7s ease-out .35s both}
+.is-opening .hline,.is-opening .bism,.is-opening .names,.is-opening .dateblock{animation:none;opacity:0}
+@media (prefers-reduced-motion:reduce){.hline,.bism,.names,.dateblock{animation:none}html{scroll-behavior:auto}.vid{display:none}}
 @media (min-width:521px){.panel{box-shadow:0 0 0 1px rgba(80,67,53,.1)}}
+
+/* ===== Royal Muscat door-opening cover ===== */
+main:focus{outline:none}
+html.is-locked{overflow:hidden;scrollbar-gutter:stable;background:#c09468}
+html.is-locked body{overflow:hidden}
+.opening{--oh:100vh;--fade:500ms;position:fixed;inset:0;z-index:1000;overflow:hidden;background:#c09468;touch-action:none;overscroll-behavior:none;opacity:1;transition:opacity var(--fade) ease}
+@supports (height:100dvh){.opening{--oh:100dvh}}
+.opening.is-leaving{opacity:0;pointer-events:none}
+/* Blurred copy of the poster fills any space around the portrait stage (beside it on desktop, above/below it on tall phones) */
+.open-backdrop{position:absolute;inset:-8%;width:116%;height:116%;object-fit:cover;filter:blur(34px);pointer-events:none;user-select:none}
+/* One 9:16 rectangle (the artwork's ratio): poster and video fill it identically, so there is no scale or position change at hand-off.
+   The whole artwork is always visible (doors, monogram, lanterns): it fits the viewport and is capped at the native 720x1280. */
+.open-stage{--w:min(100vw,calc(var(--oh)*9/16),720px);--h:calc(var(--w)*16/9);position:absolute;left:50%;top:50%;width:var(--w);height:var(--h);margin:calc(var(--h)/-2) 0 0 calc(var(--w)/-2);box-shadow:0 0 70px rgba(70,45,15,.35);background:#e8d3b0}
+.open-layer{position:absolute;inset:0;width:100%;height:100%;display:block;object-fit:cover;object-position:50% 50%;pointer-events:none;user-select:none;-webkit-user-drag:none}
+.open-video{z-index:1}
+.open-poster{z-index:2}
+.open-stage.is-playing .open-poster{opacity:0;transition:opacity .12s linear}
+.open-video::-webkit-media-controls,.open-video::-webkit-media-controls-start-playback-button{display:none!important}
+/* Invisible button over the OPEN INVITATION lettering (artwork px 238-482 x 480-595 of 720x1280); sizes with the stage at every screen size */
+.open-hit{position:absolute;z-index:3;left:33%;top:37.5%;width:34%;height:9%;min-width:44px;min-height:44px;margin:0;padding:0;border:0;border-radius:14px;background:transparent;color:transparent;cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent;appearance:none;-webkit-appearance:none}
+@media (hover:hover){.open-hit:hover{background:rgba(255,248,230,.16)}}
+.open-hit:focus-visible{outline:3px solid #6b4a1c;outline-offset:3px;background:rgba(255,248,230,.22);box-shadow:0 0 0 2px #fff8e6}
+.open-hit:disabled{cursor:default;pointer-events:none;outline:none;background:transparent;box-shadow:none}
+
+/* ===== Music controller ===== */
+#musicBtn{position:fixed;bottom:20px;right:20px;z-index:900;display:flex;align-items:center;gap:8px;padding:8px 14px 8px 10px;background:rgba(40,45,39,.82);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border:1px solid rgba(167,131,80,.5);border-radius:999px;color:var(--ivory);cursor:pointer;font:500 .65rem 'Manrope',sans-serif;letter-spacing:.18em;text-transform:uppercase;transition:background .25s,border-color .25s,opacity .4s,transform .4s;box-shadow:0 4px 14px rgba(0,0,0,.35)}
+#musicBtn[hidden]{display:none}
+#musicBtn:hover,#musicBtn:focus-visible{background:rgba(40,45,39,.96);border-color:var(--gold)}
+#musicBtn:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+#musicBtn svg{width:16px;height:16px;fill:var(--ivory);flex-shrink:0}
+/* Show pause icon when playing, play icon when paused */
+#musicBtn .ic-pause{display:none}
+#musicBtn[aria-pressed="true"] .ic-play{display:none}
+#musicBtn[aria-pressed="true"] .ic-pause{display:block}
+.music-label{line-height:1}
+/* Subtle pulse ring while playing */
+@keyframes pulse-ring{0%{box-shadow:0 4px 14px rgba(0,0,0,.35),0 0 0 0 rgba(167,131,80,.5)}70%{box-shadow:0 4px 14px rgba(0,0,0,.35),0 0 0 8px rgba(167,131,80,0)}100%{box-shadow:0 4px 14px rgba(0,0,0,.35),0 0 0 0 rgba(167,131,80,0)}}
+#musicBtn[aria-pressed="true"]{animation:pulse-ring 2.4s ease-out infinite}
+@media (prefers-reduced-motion:reduce){#musicBtn[aria-pressed="true"]{animation:none}}
