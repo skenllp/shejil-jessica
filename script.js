@@ -51,9 +51,9 @@
     try {
       const r = await fetch(RSVP_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
         body: JSON.stringify({ name, attending: att === 'yes', guests: att === 'yes' ? Number(f.get('guests') || 1) : 0, message: String(f.get('message') || '').trim(), website: String(f.get('website') || '') }) });
-      const j = await r.json().catch(() => ({}));
+      const j = await r.json().catch(() => ({ error: 'no-json' }));
       if (r.ok && j.ok) show('<p class="script">Thank you</p><p>Your response has been received.</p>');
-      else throw new Error('Could not save your response. Please try again.');
+      else throw new Error('Could not save your response. Please try again. (' + (j.error || 'http ' + r.status) + ')');
     } catch (err) {
       fail('#eForm', err instanceof TypeError ? 'Network error. Please check your connection and try again.' : err.message);
       sending = false; btn.disabled = false; btn.textContent = 'SEND RSVP';
