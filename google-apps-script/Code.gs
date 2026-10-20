@@ -1,6 +1,6 @@
 /**
  * RSVP receiver for the wedding invitation.
- * Setup: Script Properties > add SECRET (long random string). Run setup() once. Deploy as Web app.
+ * Setup: run setup() once, then Deploy as Web app (Execute as Me, access Anyone). After editing: Deploy > Manage deployments > New version.
  */
 const SHEET = 'RSVPs';
 const clean = v => { v = String(v == null ? '' : v).trim(); return /^[=+\-@]/.test(v) ? "'" + v : v; }; // blocks formula injection
@@ -8,10 +8,13 @@ const norm = n => String(n).trim().replace(/\s+/g, ' ').toLowerCase();
 const reply = o => ContentService.createTextOutput(JSON.stringify(o)).setMimeType(ContentService.MimeType.JSON);
 
 function doPost(e) {
-  const secret = PropertiesService.getScriptProperties().getProperty('SECRET');
   let b;
   try { b = JSON.parse(e.postData.contents); } catch (_) { return reply({ ok: false, error: 'bad request' }); }
-  if (!secret || b.secret !== secret) return reply({ ok: false, error: 'unauthorized' });
+  if (b.website) return reply({ ok: true }); // honeypot: bots fill the hidden field
+  // Abuse guard: max 200 submissions per hour across the site
+  const cache = CacheService.getScriptCache(), n = Number(cache.get('hits') || 0);
+  if (n >= 200) return reply({ ok: false, error: 'busy' });
+  cache.put('hits', String(n + 1), 3600);
 
   const name = String(b.name || '').trim().replace(/\s+/g, ' ');
   const attending = b.attending === true;

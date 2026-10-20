@@ -36,7 +36,8 @@
   };
   tick(); setInterval(tick, 1000);
 
-  // RSVP
+  // RSVP: posts straight to the Google Apps Script web app that writes to the sheet
+  const RSVP_URL = 'https://script.google.com/macros/s/AKfycbwLIYlcSwhesXMtYShlvP321cYFAQMCoj_f2I9o42VZBhYS3jSC-nM0J9PtszuEeR6a2Q/exec';
   const form = $('#rsvpForm'), done = $('#rsvpDone'), btn = $('#sendBtn'), gw = $('#guestsWrap');
   let sending = false;
   form.addEventListener('change', e => { if (e.target.name === 'att') gw.hidden = e.target.value !== 'yes'; });
@@ -48,12 +49,11 @@
     if (name.length < 2 || !att) return;
     sending = true; btn.disabled = true; btn.textContent = 'SENDING…';
     try {
-      const r = await fetch('/api/rsvp', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+      const r = await fetch(RSVP_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
         body: JSON.stringify({ name, attending: att === 'yes', guests: att === 'yes' ? Number(f.get('guests') || 1) : 0, message: String(f.get('message') || '').trim(), website: String(f.get('website') || '') }) });
       const j = await r.json().catch(() => ({}));
       if (r.ok && j.ok) show('<p class="script">Thank you</p><p>Your response has been received.</p>');
-      else if (j.demo || r.status === 404) show('<p class="cap">DEMO MODE</p><p>The form works, but RSVP storage isn’t configured yet. Your response was <b>not</b> saved.</p>');
-      else throw new Error(j.error || 'Something went wrong. Please try again.');
+      else throw new Error('Could not save your response. Please try again.');
     } catch (err) {
       fail('#eForm', err instanceof TypeError ? 'Network error. Please check your connection and try again.' : err.message);
       sending = false; btn.disabled = false; btn.textContent = 'SEND RSVP';
