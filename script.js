@@ -1,41 +1,5 @@
-// ---- Royal Muscat door-opening cover + music ----
+// ---- Royal Muscat door-opening cover ----
 // Runs first and is fully self-contained: any failure releases the page instead of trapping the guest behind the cover.
-// Music is started here — inside the tap handler — so the browser user-gesture requirement is satisfied.
-const _music = (() => {
-  const audio = new Audio('assets/music.mp3');
-  audio.loop = true; audio.volume = 0.35; audio.preload = 'none';
-  let ready = false;
-  const setPlaying = on => {
-    const b = document.getElementById('musicBtn'); if (!b) return;
-    b.setAttribute('aria-pressed', String(on));
-    b.setAttribute('aria-label', on ? 'Pause music' : 'Play music');
-  };
-  const tryPlay = () => audio.play().then(() => setPlaying(true)).catch(() => setPlaying(false));
-  // Called from the tap handler while the gesture is still active
-  const startFromGesture = () => {
-    if (ready) return; ready = true;
-    const b = document.getElementById('musicBtn');
-    if (b) b.hidden = false;
-    if (!matchMedia('(prefers-reduced-motion: reduce)').matches) tryPlay();
-    else setPlaying(false);
-  };
-  // Button toggle
-  document.addEventListener('click', e => {
-    if (!ready) return;
-    const b = document.getElementById('musicBtn');
-    if (b && (e.target === b || b.contains(e.target))) {
-      if (audio.paused) tryPlay(); else { audio.pause(); setPlaying(false); }
-    }
-  });
-  // Auto-pause / resume on tab visibility
-  document.addEventListener('visibilitychange', () => {
-    if (!ready) return;
-    if (document.hidden && !audio.paused) { audio.pause(); audio.dataset.auto = '1'; setPlaying(false); }
-    else if (!document.hidden && audio.dataset.auto) { delete audio.dataset.auto; tryPlay(); }
-  });
-  return { startFromGesture };
-})();
-
 (() => {
   const root = document.documentElement, $ = id => document.getElementById(id);
   const cover = $('opening'), main = $('main');
@@ -101,9 +65,8 @@ const _music = (() => {
 
     const open = () => {
       if (started) return; started = true;
-      btn.disabled = true;                    // no repeat activation; CSS fades it out
+      btn.disabled = true;                    // no repeat activation
       status.textContent = 'Opening the invitation';
-      _music.startFromGesture();              // start music now — we're inside the tap gesture
       if (reduce) return finish();            // reduced motion: skip straight to the invitation
       arm();
       video.addEventListener('ended', finish, { once: true });   // the real end of the animation, whatever its length
@@ -129,51 +92,15 @@ const _music = (() => {
   }
 })();
 
-// ---- Dot navigation for horizontal carousel ----
-(() => {
-  const main = document.getElementById('main');
-  const nav  = document.getElementById('dots');
-  if (!main || !nav) return;
-
-  const panels = [...main.querySelectorAll('.panel')];
-  const labels = ['Invitation','Family','Details','Venue','RSVP','Closing'];
-
-  // Build one dot per panel
-  const dots = panels.map((panel, i) => {
-    const btn = document.createElement('button');
-    btn.setAttribute('aria-label', labels[i] || 'Slide ' + (i + 1));
-    btn.setAttribute('type', 'button');
-    if (i === 0) btn.classList.add('active');
-    btn.addEventListener('click', () => {
-      panel.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'start' });
-    });
-    nav.appendChild(btn);
-    return btn;
-  });
-
-  // Track which panel is visible
-  const obs = new IntersectionObserver(entries => {
-    entries.forEach(entry => {
-      if (entry.isIntersecting) {
-        const idx = panels.indexOf(entry.target);
-        dots.forEach((d, i) => d.classList.toggle('active', i === idx));
-        // Start footer video when it comes into view
-        if (entry.target.tagName === 'FOOTER' || entry.target.querySelector('#footVid')) {
-          const fv = entry.target.querySelector('#footVid') || document.getElementById('footVid');
-          if (fv && fv.paused && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
-            fv.preload = 'auto'; fv.play().catch(() => {});
-          }
-        }
-      }
-    });
-  }, { root: main, threshold: 0.5 });
-
-  panels.forEach(p => obs.observe(p));
-})();
-
-// ---- Countdown + RSVP ----
 (() => {
   const $ = (s, r = document) => r.querySelector(s);
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // Footer video: starts only when near the viewport (keeps first load light)
+  const fv = $('#footVid');
+  if (fv && !reduce) new IntersectionObserver((e, o) => {
+    if (e[0].isIntersecting) { fv.preload = 'auto'; fv.play().catch(() => {}); o.disconnect(); }
+  }, { rootMargin: '400px' }).observe(fv);
 
   // Countdown (Asia/Muscat = UTC+4, no DST)
   const target = Date.parse('2026-12-18T17:00:00+04:00');
@@ -211,3 +138,51 @@ const _music = (() => {
   function show(html) { form.hidden = true; done.innerHTML = html; done.hidden = false; }
 })();
 
+// ---- Background music controller ----
+(() => {
+  const btn = document.getElementById('musicBtn');
+  if (!btn) return;
+  const audio = new Audio('assets/music.mp3');
+  audio.loop = true;
+  audio.volume = 0.35;
+  audio.preload = 'none';
+
+  const setPlaying = playing => {
+    btn.setAttribute('aria-pressed', String(playing));
+    btn.setAttribute('aria-label', playing ? 'Pause music' : 'Play music');
+  };
+
+  const tryPlay = () => audio.play().then(() => setPlaying(true)).catch(() => setPlaying(false));
+
+  // Reveal and autoplay once the invitation is opened (fires after the door animation)
+  // We watch for the cover being removed from the DOM, then start music.
+  const cover = document.getElementById('opening');
+  if (cover) {
+    new MutationObserver((_, obs) => {
+      if (!document.getElementById('opening')) {
+        obs.disconnect();
+        btn.hidden = false;
+        if (!matchMedia('(prefers-reduced-motion: reduce)').matches) tryPlay();
+        else setPlaying(false);
+      }
+    }).observe(document.body, { childList: true, subtree: false });
+  } else {
+    // Cover already gone (e.g. noscript fallback)
+    btn.hidden = false;
+    setPlaying(false);
+  }
+
+  // Play / pause toggle
+  btn.addEventListener('click', () => {
+    if (audio.paused) tryPlay(); else { audio.pause(); setPlaying(false); }
+  });
+
+  // Auto-pause when tab is hidden; resume when it comes back
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden && !audio.paused) {
+      audio.pause(); audio.dataset.auto = '1'; setPlaying(false);
+    } else if (!document.hidden && audio.dataset.auto) {
+      delete audio.dataset.auto; tryPlay();
+    }
+  });
+})();
