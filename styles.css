@@ -1,5 +1,5 @@
 :root{--ivory:#F7F0E4;--limestone:#D9C3A3;--gold:#A78350;--espresso:#504335;--charcoal:#282D27;--mute:#6b5c49}
-*{box-sizing:border-box;margin:0}html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
+*{box-sizing:border-box;margin:0}html{scroll-behavior:smooth;-webkit-text-size-adjust:100%;overflow-x:hidden}
 body{background:#E9E4DB;color:var(--espresso);font-family:'Manrope',sans-serif;overflow-x:hidden;-webkit-font-smoothing:antialiased}
 .serif{font-family:'Cormorant Garamond',serif}.cinzel{font-family:'Cinzel',serif;font-weight:400}.script{font-family:'Great Vibes',cursive;font-weight:400}
 .arabic{font-family:'Amiri',serif;color:var(--gold);font-size:clamp(1.15rem,5.6vw,1.6rem);line-height:1.5}
