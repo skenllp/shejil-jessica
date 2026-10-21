@@ -18,8 +18,8 @@ body{background:#E9E4DB;color:var(--espresso);font-family:'Manrope',sans-serif;o
 .mono{display:block;width:clamp(38px,10vw,50px);height:auto;margin:0 auto}
 .hline{height:1px;width:64px;background:var(--gold);margin:10px auto}
 .en{font-family:'Cormorant Garamond',serif;font-style:italic;font-size:clamp(.66rem,3vw,.82rem);line-height:1.25;color:var(--espresso);margin-top:2px}
-.names{font-family:'Great Vibes',cursive;font-weight:400;color:var(--charcoal);font-size:clamp(2.1rem,10.5vw,3.2rem);line-height:1.2;margin-top:clamp(8px,2.4vw,14px);letter-spacing:.01em}
-.names span{display:block}.names .amp{font-family:'Great Vibes',cursive;font-weight:400;font-style:normal;font-size:.75em;line-height:1.4;color:var(--gold);letter-spacing:0}
+.names{font-family:'Great Vibes',cursive;font-weight:400;color:var(--charcoal);font-size:clamp(1.8rem,8.5vw,2.7rem);line-height:1.2;margin-top:clamp(8px,2.4vw,14px);letter-spacing:.01em}
+.names span{display:block;white-space:nowrap}.names .amp{font-family:'Great Vibes',cursive;font-weight:400;font-style:normal;font-size:.75em;line-height:1.4;color:var(--gold);letter-spacing:0;white-space:nowrap}
 .dateblock{color:var(--charcoal)}
 /* family */
 .fam{font-family:'Cormorant Garamond',serif;font-size:clamp(.88rem,4vw,1.1rem);line-height:1.28;color:var(--charcoal)}
